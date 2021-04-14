@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 
@@ -13,6 +14,27 @@ namespace Com.MyCompany.MyGame
     
     public class GameManager : MonoBehaviourPunCallbacks
     {
+        public static GameManager Instance;
+        
+        [Tooltip("The prefab to use for representing the player")]
+        public GameObject playerPrefab;
+        
+        private void Start()
+        {
+            Instance = this;
+            
+            if (!playerPrefab)
+            {
+                Debug.LogError("<Color=Red><a>Missing</a></Color> playerPrefab Reference. Please set it up in GameObject 'Game Manager'",this);
+            }
+            else
+            {
+                Debug.LogFormat("We are Instantiating LocalPlayer from {0}", SceneManagerHelper.ActiveSceneName);
+                // we're in a room. spawn a character for the local player. it gets synced by using PhotonNetwork.Instantiate
+                PhotonNetwork.Instantiate(this.playerPrefab.name, new Vector3(0f,5f,0f), Quaternion.identity, 0);
+            }
+        }
+
         #region Photon Callbacks
         
         /// <summary>
@@ -26,12 +48,21 @@ namespace Com.MyCompany.MyGame
         public override void OnPlayerEnteredRoom(Player newPlayer)
         {
             Debug.LogFormat("OnPlayerEnteredRoom() {0}", newPlayer.NickName); // not seen if you're the player connecting
-
-
+            
+            if (PlayerManager.LocalPlayerInstance == null)
+            {
+                Debug.LogFormat("We are Instantiating LocalPlayer from {0}", SceneManagerHelper.ActiveSceneName);
+                // we're in a room. spawn a character for the local player. it gets synced by using PhotonNetwork.Instantiate
+                PhotonNetwork.Instantiate(this.playerPrefab.name, new Vector3(0f, 5f, 0f), Quaternion.identity, 0);
+            }
+            else
+            {
+                Debug.LogFormat("Ignoring scene load for {0}", SceneManagerHelper.ActiveSceneName);
+            }
+            
             if (PhotonNetwork.IsMasterClient)
             {
                 Debug.LogFormat("OnPlayerEnteredRoom IsMasterClient {0}", PhotonNetwork.IsMasterClient); // called before OnPlayerLeftRoom
-
 
                 LoadArena();
             }
@@ -54,7 +85,6 @@ namespace Com.MyCompany.MyGame
         #endregion
         
         #region Public Methods
-
         public void LeaveRoom()
         {
             PhotonNetwork.LeaveRoom();
